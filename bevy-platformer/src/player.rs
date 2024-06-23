@@ -13,7 +13,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Startup, spawn_player)
-            .add_systems(Update, move_player)
+            .add_systems(Update, (move_player, change_animation))
         ;
     }
 }
@@ -26,7 +26,7 @@ fn spawn_player(
     let texture = asset_server.load("Main Characters/Mask Dude/Idle (32x32).png");
     let layout = TextureAtlasLayout::from_grid(Vec2::splat(32.), 11, 1, None, None);
     let texture_atlas_layout = texture_atlas_layouts.add(layout);
-    let animation_indices = AnimationIndices {first: 0, last: 10};
+    let animation_indices = AnimationIndices { first: 0, last: 10 };
     commands.spawn((
         SpriteBundle {
             transform: Transform::from_scale(Vec3::splat(6.)),
@@ -40,12 +40,12 @@ fn spawn_player(
         },
         animation_indices,
         AnimationTimer(Timer::from_seconds(0.05, TimerMode::Repeating)),
-        MovingObjectBundle{
+        MovingObjectBundle {
             velocity: Velocity::new(Vec2::ZERO),
             ..default()
         },
         Player
-        ));
+    ));
 }
 
 
@@ -60,5 +60,52 @@ fn move_player(
         player_velocity.x = MOVE_SPEED;
     } else {
         player_velocity.x = 0.;
+    }
+}
+
+fn change_animation(
+    mut query: Query<(&mut TextureAtlas, &mut AnimationIndices, &mut Sprite, &mut Handle<Image>), With<Player>>,
+    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+    asset_server: Res<AssetServer>,
+    input: Res<ButtonInput<KeyCode>>,
+) {
+    let (mut atlas, mut indices, mut sprite, mut texture) = query.single_mut();
+
+    change_direction(&input, &mut sprite);
+
+    if input.any_just_pressed([KeyCode::KeyA, KeyCode::ArrowLeft, KeyCode::KeyD, KeyCode::ArrowRight]) {
+        let texture_atlas_layout = texture_atlas_layouts.add(
+            TextureAtlasLayout::from_grid(Vec2::splat(32.), 12, 1, None, None)
+        );
+        indices.first = 0;
+        indices.last = 11;
+        atlas.index = indices.first;
+        atlas.layout = texture_atlas_layout;
+        *texture = asset_server.load("Main Characters/Mask Dude/Run (32x32).png");
+    }
+
+    if input.any_just_released([KeyCode::KeyA, KeyCode::ArrowLeft, KeyCode::KeyD, KeyCode::ArrowRight])
+        && !input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft, KeyCode::KeyD, KeyCode::ArrowRight]) {
+        let texture_atlas_layout = texture_atlas_layouts.add(
+            TextureAtlasLayout::from_grid(Vec2::splat(32.), 11, 1, None, None)
+        );
+        indices.first = 0;
+        indices.last = 10;
+        atlas.index = indices.first;
+        atlas.layout = texture_atlas_layout;
+        *texture = asset_server.load("Main Characters/Mask Dude/Idle (32x32).png");
+    }
+}
+
+fn change_direction(input: &Res<ButtonInput<KeyCode>>, sprite: &mut Mut<Sprite>) {
+    if input.any_just_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) {
+        sprite.flip_x = true;
+    } else if input.any_just_pressed([KeyCode::KeyD, KeyCode::ArrowRight])
+        && !input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) {
+        sprite.flip_x = false;
+    } else if input.any_just_released([KeyCode::KeyA, KeyCode::ArrowLeft])
+        && !input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft])
+        && input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]) {
+        sprite.flip_x = false;
     }
 }
