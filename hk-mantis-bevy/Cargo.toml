@@ -1,0 +1,16 @@
+[package]
+name = "hollow_knight_mantis_lords"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = "0.13.0"
+rand = "0.8.5"
+bevy_editor_pls = "0.8"
+
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
