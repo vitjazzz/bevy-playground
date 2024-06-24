@@ -2,11 +2,13 @@ mod camera;
 mod player;
 mod sprite_animation;
 mod movement;
+mod player_animation;
 
 use bevy::prelude::*;
 use crate::camera::CameraPlugin;
 use crate::movement::MovementPlugin;
 use crate::player::PlayerPlugin;
+use crate::player_animation::PlayerAnimationPlugin;
 use crate::sprite_animation::SpriteAnimationPlugin;
 
 fn main() {
@@ -19,5 +21,6 @@ fn main() {
         .add_plugins(PlayerPlugin)
         .add_plugins(SpriteAnimationPlugin)
         .add_plugins(MovementPlugin)
+        .add_plugins(PlayerAnimationPlugin)
         .run();
 }

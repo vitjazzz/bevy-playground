@@ -20,7 +20,7 @@ impl Plugin for SpriteAnimationPlugin {
 
 fn animate_sprite(
     time: Res<Time>,
-    mut query: Query<(&AnimationIndices, &mut AnimationTimer, &mut TextureAtlas)>
+    mut query: Query<(&AnimationIndices, &mut AnimationTimer, &mut TextureAtlas)>,
 ) {
     for (indices, mut timer, mut atlas) in query.iter_mut() {
         timer.tick(time.delta());

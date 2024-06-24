@@ -1,8 +1,10 @@
 use bevy::prelude::*;
 use crate::movement::{MovingObjectBundle, Velocity};
+use crate::player_animation::{Animation, PlayerAnimations};
 use crate::sprite_animation::{AnimationIndices, AnimationTimer};
 
 const MOVE_SPEED: f32 = 100.;
+const FALL_SPEED: f32 = 98.;
 
 #[derive(Debug, Component)]
 pub struct Player;
@@ -13,23 +15,24 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Startup, spawn_player)
-            .add_systems(Update, (move_player, change_animation))
+            .add_systems(Update, (player_move, change_animation, handle_jump, handle_fall, player_jump))
         ;
     }
 }
 
 fn spawn_player(
     mut commands: Commands,
-    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
-    asset_server: Res<AssetServer>,
+    player_animations: Res<PlayerAnimations>,
 ) {
-    let texture = asset_server.load("Main Characters/Mask Dude/Idle (32x32).png");
-    let layout = TextureAtlasLayout::from_grid(Vec2::splat(32.), 11, 1, None, None);
-    let texture_atlas_layout = texture_atlas_layouts.add(layout);
+    let Some((texture, texture_atlas_layout)) = player_animations.get(Animation::Idle)
+        else {
+            error!("Failed to find animation: Idle");
+            return;
+        };
     let animation_indices = AnimationIndices { first: 0, last: 10 };
     commands.spawn((
         SpriteBundle {
-            transform: Transform::from_scale(Vec3::splat(6.)),
+            // transform: Transform::from_scale(Vec3::splat(3.)),
             texture,
             ..default()
         },
@@ -49,8 +52,8 @@ fn spawn_player(
 }
 
 
-fn move_player(
-    mut query: Query<(&mut Velocity), With<Player>>,
+fn player_move(
+    mut query: Query<&mut Velocity, With<Player>>,
     input: Res<ButtonInput<KeyCode>>,
 ) {
     let mut player_velocity = query.single_mut();
@@ -63,10 +66,51 @@ fn move_player(
     }
 }
 
+
+#[derive(Debug, Component)]
+struct Jump(f32);
+
+fn player_jump(
+    mut commands: Commands,
+    mut query: Query<Entity, With<Player>>,
+    input: Res<ButtonInput<KeyCode>>,
+) {
+    let player = query.single_mut();
+    if input.just_pressed(KeyCode::Space) {
+        commands.entity(player).insert(Jump(100.));
+    }
+}
+
+fn handle_jump(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Transform, &mut Jump), With<Player>>,
+    time: Res<Time>,
+) {
+    let Ok((player, mut transorm, mut jump)) = query.get_single_mut() else {return;};
+    let jump_power = (time.delta_seconds() * FALL_SPEED * 2.).min(jump.0);
+    jump.0 -= jump_power;
+    transorm.translation.y += jump_power;
+    if jump.0 == 0. {
+        commands.entity(player).remove::<Jump>();
+    }
+}
+fn handle_fall(
+    mut query: Query<&mut Transform, (With<Player>, Without<Jump>)>,
+    time: Res<Time>,
+) {
+    let Ok(mut transform) = query.get_single_mut() else {return;};
+    if transform.translation.y > 0. {
+        transform.translation.y -= time.delta_seconds() * FALL_SPEED;
+        if transform.translation.y < 0. {
+            transform.translation.y = 0.;
+        }
+    }
+}
+
+
 fn change_animation(
     mut query: Query<(&mut TextureAtlas, &mut AnimationIndices, &mut Sprite, &mut Handle<Image>), With<Player>>,
-    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
-    asset_server: Res<AssetServer>,
+    player_animations: Res<PlayerAnimations>,
     input: Res<ButtonInput<KeyCode>>,
 ) {
     let (mut atlas, mut indices, mut sprite, mut texture) = query.single_mut();
@@ -74,26 +118,31 @@ fn change_animation(
     change_direction(&input, &mut sprite);
 
     if input.any_just_pressed([KeyCode::KeyA, KeyCode::ArrowLeft, KeyCode::KeyD, KeyCode::ArrowRight]) {
-        let texture_atlas_layout = texture_atlas_layouts.add(
-            TextureAtlasLayout::from_grid(Vec2::splat(32.), 12, 1, None, None)
-        );
+        let Some((new_texture, texture_atlas_layout)) = player_animations.get(Animation::Running)
+            else {
+                error!("Failed to find animation: Running");
+                return;
+            };
         indices.first = 0;
         indices.last = 11;
         atlas.index = indices.first;
         atlas.layout = texture_atlas_layout;
-        *texture = asset_server.load("Main Characters/Mask Dude/Run (32x32).png");
+        *texture = new_texture;
     }
 
     if input.any_just_released([KeyCode::KeyA, KeyCode::ArrowLeft, KeyCode::KeyD, KeyCode::ArrowRight])
         && !input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft, KeyCode::KeyD, KeyCode::ArrowRight]) {
-        let texture_atlas_layout = texture_atlas_layouts.add(
-            TextureAtlasLayout::from_grid(Vec2::splat(32.), 11, 1, None, None)
-        );
+        let Some((new_texture, texture_atlas_layout)) = player_animations.get(Animation::Idle)
+            else {
+                error!("Failed to find animation: Idle");
+                return;
+            };
+        let texture_atlas_layout = texture_atlas_layout;
         indices.first = 0;
         indices.last = 10;
         atlas.index = indices.first;
         atlas.layout = texture_atlas_layout;
-        *texture = asset_server.load("Main Characters/Mask Dude/Idle (32x32).png");
+        *texture = new_texture;
     }
 }
 
