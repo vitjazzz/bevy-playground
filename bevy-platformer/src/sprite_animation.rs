@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Debug, Component)]
+#[derive(Debug, Component, Copy, Clone)]
 pub struct AnimationIndices {
     pub first: usize,
     pub last: usize,

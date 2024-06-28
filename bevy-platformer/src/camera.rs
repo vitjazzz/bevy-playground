@@ -1,5 +1,8 @@
 use bevy::prelude::*;
 
+
+pub const CAMERA_SCALE: f32 = 0.5;
+
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
@@ -9,5 +12,7 @@ impl Plugin for CameraPlugin {
 }
 
 fn spawn_camera(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    let mut camera = Camera2dBundle::default();
+    camera.projection.scale = CAMERA_SCALE;
+    commands.spawn(camera);
 }
