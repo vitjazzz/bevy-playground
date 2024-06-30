@@ -1,15 +1,15 @@
 use bevy::prelude::*;
-use bevy::prelude::KeyCode::Space;
 use crate::ground_detection::Grounded;
 use crate::hit_box;
 use crate::hit_box::HitBox;
+use crate::map::Obstacle;
 
 use crate::movement::{MovingObjectBundle, Velocity};
 use crate::player_animation::{Animation, PlayerAnimations};
 use crate::sprite_animation::{AnimationIndices, AnimationTimer};
 
 const MOVE_SPEED: f32 = 110.;
-const FALL_SPEED: f32 = 98.;
+const FALL_SPEED: f32 = 140.;
 
 #[derive(Debug, Component)]
 pub struct Player;
@@ -86,7 +86,7 @@ struct Jump(f32);
 fn handle_jump(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Transform, &mut Jump, &HitBox), With<Player>>,
-    hitboxes: Query<(&HitBox, &Transform), Without<Player>>,
+    hitboxes: Query<(&HitBox, &Transform), (With<Obstacle>, Without<Player>)>,
     time: Res<Time>,
     input: Res<ButtonInput<KeyCode>>,
 ) {
@@ -110,7 +110,7 @@ fn handle_jump(
 
 fn handle_fall(
     mut query: Query<(&mut Transform, &HitBox), (With<Player>, Without<Jump>)>,
-    hitboxes: Query<(&HitBox, &Transform), Without<Player>>,
+    hitboxes: Query<(&HitBox, &Transform), (With<Obstacle>, Without<Player>)>,
     time: Res<Time>,
 ) {
     let Ok((mut p_offset, p_hitbox)) = query.get_single_mut() else { return; };

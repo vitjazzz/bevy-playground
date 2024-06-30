@@ -13,6 +13,10 @@ impl Plugin for MapPlugin {
     }
 }
 
+
+#[derive(Component)]
+pub struct Obstacle;
+
 fn spawn_map(
     mut commands: Commands,
     terrain: Res<TerrainSprites>,
@@ -34,6 +38,7 @@ fn spawn_map(
             ..default()
         },
         HitBox(Vec2::new(200., 16.)),
+        Obstacle,
     ))
         .with_children(|p| {
             p.spawn((
@@ -88,6 +93,7 @@ fn spawn_map(
             ..default()
         },
         HitBox(Vec2::new(32., 32.)),
+        Obstacle,
     ));
 }
 

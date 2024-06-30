@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use crate::hit_box;
 use crate::hit_box::HitBox;
+use crate::map::Obstacle;
 use crate::player::Player;
 
 const MAX_FIX: i32 = 100;
@@ -21,7 +22,7 @@ pub struct FixCollisionTimer(Timer);
 
 fn fix_collision(
     mut query: Query<(&mut Transform, &HitBox), With<Player>>,
-    hitboxes: Query<(&HitBox, &Transform), Without<Player>>,
+    hitboxes: Query<(&HitBox, &Transform), (With<Obstacle>, Without<Player>)>,
     time: Res<Time>,
     mut fix_collision_timer: ResMut<FixCollisionTimer>,
 ) {
@@ -60,7 +61,7 @@ fn fix_collision(
     p_offset.translation = result_position;
 }
 
-fn no_collision(p_position: Vec3, p_hitbox : &HitBox, hitboxes: &Query<(&HitBox, &Transform), Without<Player>>) -> bool {
+fn no_collision(p_position: Vec3, p_hitbox : &HitBox, hitboxes: &Query<(&HitBox, &Transform), (With<Obstacle>, Without<Player>)>) -> bool {
     for (hitbox, offset) in hitboxes {
         if hit_box::check_hit(*p_hitbox, p_position, *hitbox, offset.translation) {
             return false

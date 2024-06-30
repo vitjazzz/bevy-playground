@@ -3,6 +3,7 @@ use bevy_editor_pls::egui::Shape::Vec;
 use crate::ground_detection::Grounded;
 use crate::hit_box;
 use crate::hit_box::HitBox;
+use crate::map::Obstacle;
 use crate::player::Player;
 
 #[derive(Component, Debug, Default, Deref, DerefMut)]
@@ -50,7 +51,7 @@ impl Plugin for MovementPlugin {
 
 fn update_player_position(
     mut query: Query<(Entity, &Velocity, &mut Transform, &Grounded, &HitBox), With<Player>>,
-    hitboxes: Query<(&HitBox, &Transform), Without<Player>>,
+    hitboxes: Query<(&HitBox, &Transform), (With<Obstacle>, Without<Player>)>,
     time: Res<Time>,
 ) {
     let (entity, velocity, mut p_offset, grounded, p_hitbox) = query.single_mut();

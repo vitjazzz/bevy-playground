@@ -1,6 +1,9 @@
+use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::prelude::*;
 
 use crate::camera::CameraPlugin;
+use crate::collectibles::CollectiblesPlugin;
+use crate::collectibles_animation::CollectiblesAnimationPlugin;
 use crate::collision_fix::CollisionFixPlugin;
 use crate::ground_detection::GroundDetectionPlugin;
 use crate::map::MapPlugin;
@@ -19,13 +22,17 @@ mod hit_box;
 mod ground_detection;
 mod map;
 mod collision_fix;
+mod collectibles;
+mod collectibles_animation;
 
 fn main() {
     App::new()
         // Bevy built-ins
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
-        // custom plugins
+        // third-party plugins
         .add_plugins(bevy_editor_pls::prelude::EditorPlugin::default())
+        .add_plugins(FrameTimeDiagnosticsPlugin)
+        // my plugins
         .add_plugins(CameraPlugin)
         .add_plugins(PlayerPlugin)
         .add_plugins(SpriteAnimationPlugin)
@@ -34,6 +41,8 @@ fn main() {
         .add_plugins(GroundDetectionPlugin)
         .add_plugins(MapPlugin)
         .add_plugins(CollisionFixPlugin)
+        .add_plugins(CollectiblesAnimationPlugin)
+        .add_plugins(CollectiblesPlugin)
         // .add_plugins(DebugPlugin)
         .run();
 }

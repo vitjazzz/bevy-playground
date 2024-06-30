@@ -6,6 +6,10 @@ edition = "2021"
 [dependencies]
 bevy = "0.13.0"
 bevy_editor_pls = "0.8"
+rand = "0.8.5"
+num = "0.4.3"
+num-derive = "0.4.2"
+num-traits = "0.2.19"
 
 [profile.dev]
 opt-level = 1
