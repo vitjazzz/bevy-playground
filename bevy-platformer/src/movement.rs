@@ -1,4 +1,9 @@
 use bevy::prelude::*;
+use bevy_editor_pls::egui::Shape::Vec;
+use crate::ground_detection::Grounded;
+use crate::hit_box;
+use crate::hit_box::HitBox;
+use crate::player::Player;
 
 #[derive(Component, Debug, Default, Deref, DerefMut)]
 pub struct Velocity {
@@ -35,18 +40,34 @@ impl Plugin for MovementPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (update_velocity, update_position)
+            (update_velocity, update_player_position)
                 .chain()
         )
         ;
     }
 }
 
-fn update_position(mut query: Query<(&Velocity, &mut Transform)>, time: Res<Time>) {
-    for (vel, mut transform) in query.iter_mut() {
-        transform.translation.x += vel.value.x * time.delta_seconds();
-        transform.translation.y += vel.value.y * time.delta_seconds();
+
+fn update_player_position(
+    mut query: Query<(Entity, &Velocity, &mut Transform, &Grounded, &HitBox), With<Player>>,
+    hitboxes: Query<(&HitBox, &Transform), Without<Player>>,
+    time: Res<Time>,
+) {
+    let (entity, velocity, mut p_offset, grounded, p_hitbox) = query.single_mut();
+
+    if velocity.value.x == 0. && velocity.value.y == 0. {
+        return;
     }
+
+    let delta_x = velocity.value.x * time.delta_seconds() * (0.5 + (grounded.0 as u16) as f32);
+
+    let new_position = p_offset.translation + Vec3::X * delta_x;
+    for (hitbox, offset) in &hitboxes {
+        if hit_box::check_hit(*p_hitbox, new_position, *hitbox, offset.translation) {
+            return;
+        }
+    }
+    p_offset.translation = new_position;
 }
 
 fn update_velocity(mut query: Query<(&Acceleration, &mut Velocity)>, time: Res<Time>) {

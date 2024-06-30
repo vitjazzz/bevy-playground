@@ -14,7 +14,7 @@ pub enum Animation {
 
 #[derive(Debug, Resource)]
 pub struct PlayerAnimations {
-    pub map: HashMap<Animation, (Handle<Image>, Handle<TextureAtlasLayout>, AnimationIndices)>,
+    map: HashMap<Animation, (Handle<Image>, Handle<TextureAtlasLayout>, AnimationIndices)>,
 }
 
 pub struct PlayerAnimationPlugin;

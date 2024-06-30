@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy::prelude::KeyCode::Space;
 use crate::ground_detection::Grounded;
+use crate::hit_box;
 use crate::hit_box::HitBox;
 
 use crate::movement::{MovingObjectBundle, Velocity};
@@ -22,7 +23,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Startup, spawn_player)
-            .add_systems(Update, (player_move, handle_jump, handle_fall, player_jump, change_animation).chain())
+            .add_systems(Update, (player_move, handle_jump, handle_fall, change_animation).chain())
         ;
     }
 }
@@ -39,6 +40,7 @@ fn spawn_player(
     commands.spawn((
         SpriteBundle {
             // transform: Transform::from_scale(Vec3::splat(3.)),
+            transform: Transform::from_translation(Vec3::Y * 16.),
             texture,
             ..default()
         },
@@ -54,18 +56,21 @@ fn spawn_player(
             ..default()
         },
         Grounded(true),
-        HitBox(Vec2::splat(32.)),
+        HitBox(Vec2::new(18., 30.)),
         Player
     ));
 }
 
 
 fn player_move(
-    mut query: Query<(&mut Velocity), With<Player>>,
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Velocity), With<Player>>,
     input: Res<ButtonInput<KeyCode>>,
 ) {
-    let (mut player_velocity) = query.single_mut();
-    if input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) {
+    let (player, mut player_velocity) = query.single_mut();
+    if input.just_pressed(KeyCode::Space) {
+        commands.entity(player).insert(Jump(100.));
+    } else if input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) {
         player_velocity.x = -MOVE_SPEED;
     } else if input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]) {
         player_velocity.x = MOVE_SPEED;
@@ -78,42 +83,44 @@ fn player_move(
 #[derive(Debug, Component)]
 struct Jump(f32);
 
-fn player_jump(
-    mut commands: Commands,
-    mut query: Query<(Entity), With<Player>>,
-    input: Res<ButtonInput<KeyCode>>,
-) {
-    let (player) = query.single_mut();
-    if input.just_pressed(KeyCode::Space) {
-        commands.entity(player).insert(Jump(100.));
-    }
-}
-
 fn handle_jump(
     mut commands: Commands,
-    mut query: Query<(Entity, &mut Transform, &mut Jump), With<Player>>,
+    mut query: Query<(Entity, &mut Transform, &mut Jump, &HitBox), With<Player>>,
+    hitboxes: Query<(&HitBox, &Transform), Without<Player>>,
     time: Res<Time>,
+    input: Res<ButtonInput<KeyCode>>,
 ) {
-    let Ok((player, mut transorm, mut jump)) = query.get_single_mut() else { return; };
+    let Ok((player, mut p_offset, mut jump, p_hitbox)) = query.get_single_mut() else { return; };
     let jump_power = (time.delta_seconds() * FALL_SPEED * 2.).min(jump.0);
-    jump.0 -= jump_power;
-    transorm.translation.y += jump_power;
-    if jump.0 == 0. {
+
+    let new_position = p_offset.translation + Vec3::Y * jump_power;
+    for (hitbox, offset) in &hitboxes {
+        if hit_box::check_hit(*p_hitbox, new_position, *hitbox, offset.translation) {
+            commands.entity(player).remove::<Jump>();
+            return;
+        }
+    }
+    p_offset.translation = new_position;
+
+    jump.0 -= if input.any_pressed([KeyCode::Space]) { jump_power } else { jump_power * 2. };
+    if jump.0 <= 0. {
         commands.entity(player).remove::<Jump>();
     }
 }
 
 fn handle_fall(
-    mut query: Query<(&mut Transform), (With<Player>, Without<Jump>)>,
+    mut query: Query<(&mut Transform, &HitBox), (With<Player>, Without<Jump>)>,
+    hitboxes: Query<(&HitBox, &Transform), Without<Player>>,
     time: Res<Time>,
 ) {
-    let Ok((mut transform)) = query.get_single_mut() else { return; };
-    if transform.translation.y > 0. {
-        transform.translation.y -= time.delta_seconds() * FALL_SPEED;
-        if transform.translation.y < 0. {
-            transform.translation.y = 0.;
+    let Ok((mut p_offset, p_hitbox)) = query.get_single_mut() else { return; };
+    let new_position = p_offset.translation - Vec3::Y * time.delta_seconds() * FALL_SPEED;
+    for (hitbox, offset) in &hitboxes {
+        if hit_box::check_hit(*p_hitbox, new_position, *hitbox, offset.translation) {
+            return;
         }
     }
+    p_offset.translation = new_position;
 }
 
 

@@ -1,18 +1,10 @@
 use bevy::prelude::*;
 
-pub struct HitBoxPlugin;
-
-impl Plugin for HitBoxPlugin {
-    fn build(&self, app: &mut App) {
-        app
-        ;
-    }
-}
 
 #[derive(Debug, Component, Clone, Copy)]
 pub struct HitBox(pub Vec2);
 
-fn check_hit(hitbox: HitBox, offset: Vec3, other_hitbox: HitBox, other_offset: Vec3) -> bool {
+pub fn check_hit(hitbox: HitBox, offset: Vec3, other_hitbox: HitBox, other_offset: Vec3) -> bool {
     let h_size = hitbox.0.y / 2.;
     let oh_size = other_hitbox.0.y / 2.;
     let w_size = hitbox.0.x / 2.;
