@@ -50,11 +50,11 @@ impl Plugin for MovementPlugin {
 
 
 fn update_player_position(
-    mut query: Query<(Entity, &Velocity, &mut Transform, &Grounded, &HitBox), With<Player>>,
+    mut query: Query<(&Velocity, &mut Transform, &Grounded, &HitBox), With<Player>>,
     hitboxes: Query<(&HitBox, &Transform), (With<Obstacle>, Without<Player>)>,
     time: Res<Time>,
 ) {
-    let (entity, velocity, mut p_offset, grounded, p_hitbox) = query.single_mut();
+    let ( velocity, mut p_offset, grounded, p_hitbox) = query.single_mut();
 
     if velocity.value.x == 0. && velocity.value.y == 0. {
         return;

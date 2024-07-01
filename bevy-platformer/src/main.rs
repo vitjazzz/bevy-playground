@@ -1,11 +1,13 @@
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::prelude::*;
+use leafwing_input_manager::plugin::InputManagerPlugin;
 
 use crate::camera::CameraPlugin;
 use crate::collectibles::CollectiblesPlugin;
 use crate::collectibles_animation::CollectiblesAnimationPlugin;
 use crate::collision_fix::CollisionFixPlugin;
 use crate::ground_detection::GroundDetectionPlugin;
+use crate::user_input::PlayerInput;
 use crate::map::MapPlugin;
 use crate::movement::MovementPlugin;
 use crate::player::PlayerPlugin;
@@ -24,6 +26,7 @@ mod map;
 mod collision_fix;
 mod collectibles;
 mod collectibles_animation;
+mod user_input;
 
 fn main() {
     App::new()
@@ -32,6 +35,7 @@ fn main() {
         // third-party plugins
         .add_plugins(bevy_editor_pls::prelude::EditorPlugin::default())
         .add_plugins(FrameTimeDiagnosticsPlugin)
+        .add_plugins(InputManagerPlugin::<PlayerInput>::default())
         // my plugins
         .add_plugins(CameraPlugin)
         .add_plugins(PlayerPlugin)

@@ -1,6 +1,10 @@
 use std::collections::HashMap;
 use bevy::math::Vec2;
 use bevy::prelude::*;
+use leafwing_input_manager::action_state::ActionState;
+use crate::ground_detection::Grounded;
+use crate::user_input::PlayerInput;
+use crate::player::{Jump, Player};
 use crate::sprite_animation::AnimationIndices;
 
 #[derive(Debug, Hash, PartialEq, Eq, Copy, Clone, Default)]
@@ -23,8 +27,46 @@ impl Plugin for PlayerAnimationPlugin {
     fn build(&self, app: &mut App) {
         app
             .init_resource::<PlayerAnimations>()
+            .add_systems(Update, change_animation)
         ;
     }
+}
+
+fn change_animation(
+    mut query: Query<(&mut TextureAtlas, &mut AnimationIndices, &mut Sprite, &mut Handle<Image>, &ActionState<PlayerInput>), With<Player>>,
+    query_jump: Query<(&Grounded, Option<&Jump>), With<Player>>,
+    player_animations: Res<PlayerAnimations>,
+    mut last_animation: Local<Animation>,
+) {
+    let (mut atlas, mut indices, mut sprite, mut texture, input) = query.single_mut();
+    let (on_ground, jump) = query_jump.single();
+
+    change_direction(&input, &mut sprite);
+
+    let current_animation =
+        if jump.is_some() {
+            Animation::Jump
+        } else if !on_ground.0 {
+            Animation::Fall
+        } else if input.pressed(&PlayerInput::Left) || input.pressed(&PlayerInput::Right) {
+            Animation::Running
+        } else {
+            Animation::Idle
+        };
+    if current_animation == *last_animation {
+        return;
+    }
+    if let Some((new_texture, texture_atlas_layout, animation_indices)) = player_animations.get(current_animation.clone()) {
+        indices.first = animation_indices.first;
+        indices.last = animation_indices.last;
+        atlas.index = indices.first;
+        atlas.layout = texture_atlas_layout;
+        *texture = new_texture;
+        *last_animation = current_animation;
+    } else {
+        error!("Failed to find animation: {:?}", &current_animation);
+        return;
+    };
 }
 
 impl PlayerAnimations {
@@ -64,5 +106,18 @@ impl FromWorld for PlayerAnimations {
         animations.add(Animation::Jump, jump_texture, jump_layout, AnimationIndices{first:0, last:0});
         animations.add(Animation::Fall, fall_texture, fall_layout, AnimationIndices{first:0, last:0});
         animations
+    }
+}
+
+fn change_direction(input: &ActionState<PlayerInput>, sprite: &mut Mut<Sprite>) {
+    if input.just_pressed(&PlayerInput::Left) {
+        sprite.flip_x = true;
+    } else if input.just_pressed(&PlayerInput::Right)
+        && !input.pressed(&PlayerInput::Left) {
+        sprite.flip_x = false;
+    } else if input.just_released(&PlayerInput::Left)
+        && !input.pressed(&PlayerInput::Left)
+        && input.pressed(&PlayerInput::Right) {
+        sprite.flip_x = false;
     }
 }
