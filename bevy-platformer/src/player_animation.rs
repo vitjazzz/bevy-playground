@@ -13,6 +13,7 @@ pub enum Animation {
     Idle,
     Running,
     Jump,
+    DoubleJump,
     Fall,
 }
 
@@ -44,8 +45,10 @@ fn change_animation(
     change_direction(&input, &mut sprite);
 
     let current_animation =
-        if jump.is_some() {
+        if jump.is_some() && !jump.unwrap().is_double_jump {
             Animation::Jump
+        } else if jump.is_some() && jump.unwrap().is_double_jump {
+            Animation::DoubleJump
         } else if !on_ground.0 {
             Animation::Fall
         } else if input.pressed(&PlayerInput::Left) || input.pressed(&PlayerInput::Right) {
@@ -86,6 +89,7 @@ impl FromWorld for PlayerAnimations {
         let idle_texture: Handle<Image> = asset_server.load("Main Characters/Mask Dude/Idle (32x32).png").clone();
         let running_texture: Handle<Image> = asset_server.load("Main Characters/Mask Dude/Run (32x32).png").clone();
         let jump_texture: Handle<Image> = asset_server.load("Main Characters/Mask Dude/Jump (32x32).png").clone();
+        let double_jump_texture: Handle<Image> = asset_server.load("Main Characters/Mask Dude/Double Jump (32x32).png").clone();
         let fall_texture: Handle<Image> = asset_server.load("Main Characters/Mask Dude/Fall (32x32).png").clone();
         let mut texture_atlas_layouts = world.resource_mut::<Assets<TextureAtlasLayout>>();
         let idle_layout = texture_atlas_layouts.add(
@@ -97,6 +101,9 @@ impl FromWorld for PlayerAnimations {
         let jump_layout = texture_atlas_layouts.add(
             TextureAtlasLayout::from_grid(Vec2::splat(32.), 1, 1, None, None)
         );
+        let double_jump_layout = texture_atlas_layouts.add(
+            TextureAtlasLayout::from_grid(Vec2::splat(32.), 6, 1, None, None)
+        );
         let fall_layout = texture_atlas_layouts.add(
             TextureAtlasLayout::from_grid(Vec2::splat(32.), 1, 1, None, None)
         );
@@ -104,6 +111,7 @@ impl FromWorld for PlayerAnimations {
         animations.add(Animation::Idle, idle_texture, idle_layout, AnimationIndices { first: 0, last: 10 });
         animations.add(Animation::Running, running_texture, running_layout, AnimationIndices { first: 0, last: 11 });
         animations.add(Animation::Jump, jump_texture, jump_layout, AnimationIndices{first:0, last:0});
+        animations.add(Animation::DoubleJump, double_jump_texture, double_jump_layout, AnimationIndices{first:0, last:5});
         animations.add(Animation::Fall, fall_texture, fall_layout, AnimationIndices{first:0, last:0});
         animations
     }

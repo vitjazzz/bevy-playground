@@ -8,7 +8,7 @@ use crate::map::Obstacle;
 
 use crate::movement::{MovingObjectBundle, Velocity};
 use crate::player_animation::{Animation, PlayerAnimations};
-use crate::sprite_animation::{AnimationIndices, AnimationTimer};
+use crate::sprite_animation::{AnimationTimer};
 
 const MOVE_SPEED: f32 = 110.;
 const FALL_SPEED: f32 = 140.;
@@ -59,7 +59,7 @@ fn spawn_player(
         },
         Grounded(true),
         HitBox(Vec2::new(18., 30.)),
-        InputManagerBundle{
+        InputManagerBundle {
             input_map: PlayerInput::player_one(),
             ..default()
         },
@@ -71,10 +71,19 @@ fn spawn_player(
 fn player_move(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Velocity, &Grounded, &ActionState<PlayerInput>), With<Player>>,
+    query_double_jump: Query<Option<&DoubleJumpAvailable>, With<Player>>,
 ) {
     let (player, mut player_velocity, grounded, input) = query.single_mut();
-    if input.just_pressed(&PlayerInput::Jump) && grounded.0 {
-        commands.entity(player).insert(Jump(100.));
+    let double_jump_available = query_double_jump.single();
+
+    if input.just_pressed(&PlayerInput::Jump) {
+        if grounded.0 {
+            commands.entity(player).insert(Jump { speed: 100., is_double_jump: false });
+            commands.entity(player).insert(DoubleJumpAvailable);
+        } else if double_jump_available.is_some() {
+            commands.entity(player).insert(Jump { speed: 100., is_double_jump: true });
+            commands.entity(player).remove::<DoubleJumpAvailable>();
+        }
     } else if input.pressed(&PlayerInput::Left) {
         player_velocity.x = -MOVE_SPEED;
     } else if input.pressed(&PlayerInput::Right) {
@@ -86,7 +95,13 @@ fn player_move(
 
 
 #[derive(Debug, Component)]
-pub struct Jump(f32);
+pub struct Jump {
+    speed: f32,
+    pub is_double_jump: bool,
+}
+
+#[derive(Debug, Component)]
+pub struct DoubleJumpAvailable;
 
 fn handle_jump(
     mut commands: Commands,
@@ -95,7 +110,7 @@ fn handle_jump(
     time: Res<Time>,
 ) {
     let Ok((player, mut p_offset, mut jump, p_hitbox, input)) = query.get_single_mut() else { return; };
-    let jump_power = (time.delta_seconds() * FALL_SPEED * 2.).min(jump.0);
+    let jump_power = (time.delta_seconds() * FALL_SPEED * 2.).min(jump.speed);
 
     let new_position = p_offset.translation + Vec3::Y * jump_power;
     for (hitbox, offset) in &hitboxes {
@@ -106,8 +121,8 @@ fn handle_jump(
     }
     p_offset.translation = new_position;
 
-    jump.0 -= if input.pressed(&PlayerInput::Jump) { jump_power } else { jump_power * 2. };
-    if jump.0 <= 0. {
+    jump.speed -= if input.pressed(&PlayerInput::Jump) { jump_power } else { jump_power * 2. };
+    if jump.speed <= 0. {
         commands.entity(player).remove::<Jump>();
     }
 }
