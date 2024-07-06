@@ -7,7 +7,10 @@ edition = "2021"
 bevy = "0.13.0"
 bevy_editor_pls = "0.8"
 rand = "0.8.5"
-leafwing-input-manager = "*"
+leafwing-input-manager = "0.13.3"
+bevy_rapier2d = "0.26.0"
+bevy-inspector-egui = {version = "0.24.0"}
+bevy-inspector-egui-rapier = {version = "0.9.0", features = ["rapier2d"]}
 
 [profile.dev]
 opt-level = 1

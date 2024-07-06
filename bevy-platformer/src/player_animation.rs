@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 use bevy::math::Vec2;
 use bevy::prelude::*;
-use leafwing_input_manager::action_state::ActionState;
-use crate::ground_detection::Grounded;
-use crate::user_input::PlayerInput;
+use bevy_rapier2d::prelude::*;
 use crate::player::{Jump, Player};
 use crate::sprite_animation::AnimationIndices;
 
@@ -34,24 +32,24 @@ impl Plugin for PlayerAnimationPlugin {
 }
 
 fn change_animation(
-    mut query: Query<(&mut TextureAtlas, &mut AnimationIndices, &mut Sprite, &mut Handle<Image>, &ActionState<PlayerInput>), With<Player>>,
-    query_jump: Query<(&Grounded, Option<&Jump>), With<Player>>,
+    mut query: Query<(&mut TextureAtlas, &mut AnimationIndices, &mut Sprite, &mut Handle<Image>, &Jump, &Velocity), With<Player>>,
     player_animations: Res<PlayerAnimations>,
     mut last_animation: Local<Animation>,
 ) {
-    let (mut atlas, mut indices, mut sprite, mut texture, input) = query.single_mut();
-    let (on_ground, jump) = query_jump.single();
+    let (mut atlas, mut indices, mut sprite, mut texture, jump, velocity) = query.single_mut();
 
-    change_direction(&input, &mut sprite);
+    change_direction(velocity, &mut sprite);
 
     let current_animation =
-        if jump.is_some() && !jump.unwrap().is_double_jump {
-            Animation::Jump
-        } else if jump.is_some() && jump.unwrap().is_double_jump {
-            Animation::DoubleJump
-        } else if !on_ground.0 {
+        if velocity.linvel.y > 0.01 {
+            if jump.is_double_jump {
+                Animation::DoubleJump
+            } else {
+                Animation::Jump
+            }
+        } else if velocity.linvel.y < -0.01 {
             Animation::Fall
-        } else if input.pressed(&PlayerInput::Left) || input.pressed(&PlayerInput::Right) {
+        } else if velocity.linvel.x != 0. {
             Animation::Running
         } else {
             Animation::Idle
@@ -117,15 +115,10 @@ impl FromWorld for PlayerAnimations {
     }
 }
 
-fn change_direction(input: &ActionState<PlayerInput>, sprite: &mut Mut<Sprite>) {
-    if input.just_pressed(&PlayerInput::Left) {
+fn change_direction(velocity: &Velocity, sprite: &mut Mut<Sprite>) {
+    if velocity.linvel.x < 0. {
         sprite.flip_x = true;
-    } else if input.just_pressed(&PlayerInput::Right)
-        && !input.pressed(&PlayerInput::Left) {
-        sprite.flip_x = false;
-    } else if input.just_released(&PlayerInput::Left)
-        && !input.pressed(&PlayerInput::Left)
-        && input.pressed(&PlayerInput::Right) {
+    } else if velocity.linvel.x > 0. {
         sprite.flip_x = false;
     }
 }

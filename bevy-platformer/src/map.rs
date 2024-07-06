@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-use crate::hit_box::HitBox;
+use bevy_rapier2d::dynamics::RigidBody;
+use bevy_rapier2d::geometry::Collider;
 
 
 pub struct MapPlugin;
@@ -13,9 +14,6 @@ impl Plugin for MapPlugin {
     }
 }
 
-
-#[derive(Component)]
-pub struct Obstacle;
 
 fn spawn_map(
     mut commands: Commands,
@@ -37,8 +35,8 @@ fn spawn_map(
             index: TerrainType::GoldStraight as usize,
             ..default()
         },
-        HitBox(Vec2::new(200., 16.)),
-        Obstacle,
+        Collider::cuboid(100., 8.),
+        RigidBody::Fixed,
     ))
         .with_children(|p| {
             p.spawn((
@@ -92,8 +90,8 @@ fn spawn_map(
             index: TerrainType::GoldFullEnd as usize,
             ..default()
         },
-        HitBox(Vec2::new(32., 32.)),
-        Obstacle,
+        Collider::cuboid(16., 16.),
+        RigidBody::Fixed,
     ));
 }
 

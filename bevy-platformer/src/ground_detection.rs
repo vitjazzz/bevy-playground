@@ -17,10 +17,11 @@ pub struct Grounded(pub bool);
 
 fn ground_detection(
     mut query: Query<(&Transform, &mut Grounded), With<Player>>,
-    mut last: Local<Transform>,
+    mut last: Local<f32>,
 ) {
     let ( position, mut on_ground) = query.single_mut();
-    let current = if position.translation.y == last.translation.y {
+    let new_y_position = (position.translation.y * 100.).round();
+    let current = if new_y_position == *last {
         true
     } else {
         false
@@ -28,5 +29,5 @@ fn ground_detection(
     if current != on_ground.0 {
         on_ground.0 = current;
     }
-    *last = *position;
+    *last = new_y_position;
 }
